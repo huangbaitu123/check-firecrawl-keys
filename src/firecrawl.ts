@@ -95,6 +95,7 @@ function checkAccountUsage(email: string) {
 // ];
 
 export default function checkFirecrwalUsage(env: Env) {
+	let accountsResult = {};
 	return getValueFromSSM('FIRECRAWL_EMAIL_LIST', env)
 		.then((res) => {
 			if (!res) {
@@ -126,6 +127,7 @@ export default function checkFirecrwalUsage(env: Env) {
 					failed.push(ret.reason as string);
 				}
 			}
+			accountsResult = { success, failed, outOfUsage };
 			if (success.length < 3) {
 				return sendMessage(
 					`
@@ -146,5 +148,8 @@ export default function checkFirecrwalUsage(env: Env) {
 					env
 				);
 			}
+		})
+		.then(() => {
+			return accountsResult;
 		});
 }

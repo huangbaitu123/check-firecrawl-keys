@@ -16,6 +16,7 @@
  */
 
 import checkFirecrwalUsage from './firecrawl';
+const SafeToken = 'h7348yfryf8f3frghand9';
 
 export default {
 	// The scheduled handler is invoked at the interval set in our wrangler.toml's
@@ -34,8 +35,13 @@ export default {
 		await checkFirecrwalUsage(env);
 	},
 	async fetch(request, env, ctx) {
+		if (!request.url.includes(SafeToken)) {
+			return new Response('failed', {
+				status: 403,
+			});
+		}
 		return checkFirecrwalUsage(env).then((res) => {
-			return new Response(JSON.stringify({ ok: true }), {
+			return new Response(JSON.stringify({ ok: true, data: res }), {
 				headers: {
 					'content-type': 'application/json',
 				},
