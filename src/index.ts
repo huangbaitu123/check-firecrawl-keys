@@ -35,7 +35,7 @@ export default {
 	},
 	async fetch(request, env, ctx) {
 		return checkFirecrwalUsage(env).then((res) => {
-			return new Response(JSON.stringify({ ok: true, env }), {
+			return new Response(JSON.stringify({ ok: true }), {
 				headers: {
 					'content-type': 'application/json',
 				},
