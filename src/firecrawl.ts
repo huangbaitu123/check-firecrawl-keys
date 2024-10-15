@@ -2,8 +2,18 @@ import { getValueFromSSM } from './ssm';
 import sendMessage from './sendMsg';
 import * as cheerio from 'cheerio';
 
+const Accounts = [
+	'wenici2401@paxnw.com',
+	'rebaxec363@paxnw.com',
+	'mojowej337@adambra.com',
+	'pawej76608@paxnw.com',
+	'yiwiboj655@chainds.com',
+	'yovako7967@skrank.com',
+	'hewiba2984@skrank.com',
+];
+
 function checkAccountUsage(email: string) {
-	const password = email.split('@')[0].split('').reverse().join('');
+	const password = Accounts.includes(email) ? email.split('@')[0].split('').reverse().join('') : email;
 	return fetch('https://www.firecrawl.dev/signin/password_signin', {
 		headers: {
 			accept: 'text/x-component',
@@ -51,32 +61,18 @@ function checkAccountUsage(email: string) {
 				method: 'GET',
 			};
 			const usageUrl = 'https://www.firecrawl.dev/app/usage';
-			const appKeyUrl = 'https://www.firecrawl.dev/app';
-			return Promise.all([
-				fetch(usageUrl, options).then((r) => {
-					if (r.url !== usageUrl) {
-						return Promise.reject(new Error(`Failed access ${r.status}`));
-					}
-					return r.text();
-				}),
-				fetch(appKeyUrl, options).then((r) => {
-					if (r.url !== appKeyUrl) {
-						return Promise.reject(new Error(`Failed access ${r.status}`));
-					}
-					return r.text();
-				}),
-			]);
+			return fetch(usageUrl, options).then((r) => {
+				if (r.url !== usageUrl) {
+					return Promise.reject(new Error(`Failed access ${r.status}`));
+				}
+				return r.text();
+			});
 		})
-		.then(([usageHtml, appKeyHtml]) => {
+		.then((usageHtml) => {
 			const $ = cheerio.load(usageHtml.replace('<!DOCTYPE html>', ''));
 			const usage = $('#current-billing-cycle + div > div > div:nth-child(1) > dd > span:nth-child(1)').text();
-
-			const reg = /fc-[0-9a-z]{32}/g;
-
-			const result = appKeyHtml.match(reg);
 			return {
 				email,
-				key: result?.[0],
 				usage: usage.trim(),
 			};
 		})
@@ -96,14 +92,15 @@ function checkAccountUsage(email: string) {
 
 export default function checkFirecrwalUsage(env: Env) {
 	let accountsResult = {};
-	return getValueFromSSM('FIRECRAWL_EMAIL_LIST', env)
+	return getValueFromSSM('FIRECRAWL_ACCOUNT_LIST', env)
 		.then((res) => {
 			if (!res) {
 				return;
 			}
 			const Accounts = res.split(',');
 			return Promise.allSettled(
-				Accounts.map((email) => {
+				Accounts.map((account) => {
+					const [email] = account.split(':');
 					return checkAccountUsage(email);
 				})
 			);
@@ -117,7 +114,7 @@ export default function checkFirecrwalUsage(env: Env) {
 			const success: string[] = [];
 			for (const ret of result) {
 				if (ret.status === 'fulfilled') {
-					const msg = ret.value.email + ':' + ret.value.key + ':' + ret.value.usage;
+					const msg = ret.value.email + ':' + ret.value.usage;
 					if (parseInt(ret.value.usage ?? '') >= 98) {
 						outOfUsage.push(msg);
 					} else {
